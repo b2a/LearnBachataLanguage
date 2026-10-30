@@ -1,0 +1,144 @@
+/* ==========================================================================
+   Bewegung
+   Regeln: nur transform/opacity, Dauern aus den Tokens (100/150/200/300 ms),
+   ease-out beim Erscheinen, ease-in beim Verschwinden, kein Bounce.
+   Ausnahme (dokumentiert): Feier-Effekte (Konfetti, XP-Anzeige) laufen einmalig
+   länger, weil sie belohnen und kein UI-Element sind. Sie entfallen bei reduzierter Bewegung.
+   ========================================================================== */
+
+@keyframes enter-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes enter-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes enter-pop {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes leave-down {
+  to { opacity: 0; transform: translateY(6px); }
+}
+@keyframes enter-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+@keyframes float-up {
+  0% { opacity: 0; transform: translate(-50%, 0); }
+  15% { opacity: 1; transform: translate(-50%, -10px); }
+  100% { opacity: 0; transform: translate(-50%, -48px); }
+}
+@keyframes tap {
+  0% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+@keyframes eq {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+/* Seitenwechsel */
+.view-enter { animation: enter-up var(--motion-200) var(--ease-out) backwards; }
+
+/* Lernpfad: Stationen erscheinen leicht gestaffelt (30 ms pro Station, max. 180 ms) */
+.view-enter .path-stop { animation: enter-up var(--motion-300) var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 30ms); }
+.view-enter .stage { animation: enter-up var(--motion-200) var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 30ms); }
+.view-enter .tip { animation: enter-up var(--motion-200) var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 30ms); }
+.view-enter .phrase-part { animation: enter-pop var(--motion-300) var(--ease-out) backwards; animation-delay: calc(80ms + var(--i, 0) * 30ms); }
+.node-bubble { animation: enter-fade var(--motion-300) var(--ease-out) 200ms backwards; }
+
+/* Übungen */
+.ex-enter { animation: enter-right var(--motion-200) var(--ease-out) backwards; }
+.feedback.is-open { animation: sheet-up var(--motion-200) var(--ease-out) backwards; }
+.fx-shake { animation: shake var(--motion-300) var(--ease-out); }
+.fx-pop { animation: pop var(--motion-200) var(--ease-out); }
+.fx-float { animation: float-up 900ms var(--ease-out) forwards; }
+.combo { transition: opacity var(--motion-200) var(--ease-out); }
+.tap-btn.is-tapped { animation: tap var(--motion-100) var(--ease-out); }
+.line-enter { animation: enter-up var(--motion-200) var(--ease-out) backwards; }
+.run-done > * { animation: enter-up var(--motion-300) var(--ease-out) backwards; }
+.run-done > *:nth-child(2) { animation-delay: 30ms; }
+.run-done > *:nth-child(3) { animation-delay: 60ms; }
+.run-done > *:nth-child(4) { animation-delay: 90ms; }
+
+/* Overlays */
+.toast { animation: enter-pop var(--motion-200) var(--ease-out) backwards; }
+.toast.is-leaving { animation: leave-down var(--motion-150) var(--ease-in) forwards; }
+.wordcard { animation: enter-pop var(--motion-150) var(--ease-out) backwards; }
+.wordcard.is-sheet { animation: sheet-up var(--motion-200) var(--ease-out) backwards; }
+.wordcard.is-leaving { animation: leave-down var(--motion-150) var(--ease-in) forwards; }
+.dialog[open] { animation: enter-pop var(--motion-200) var(--ease-out) backwards; }
+.dialog[open]::backdrop { animation: enter-fade var(--motion-200) var(--ease-out) backwards; }
+.dialog.is-leaving { animation: leave-down var(--motion-150) var(--ease-in) forwards; }
+.sync-overlay { animation: enter-fade var(--motion-150) var(--ease-out) backwards; }
+.sync-overlay .sync-panel { animation: enter-pop var(--motion-200) var(--ease-out) backwards; }
+.sync-overlay.is-leaving { animation: leave-down var(--motion-150) var(--ease-in) forwards; }
+.mini:not([hidden]) { animation: sheet-up var(--motion-200) var(--ease-out) backwards; }
+
+/* Equalizer im Mini-Player: zeigt laufende Wiedergabe an (funktional, stoppt bei Pause) */
+.eq.is-playing i { animation: eq 900ms ease-in-out infinite; }
+.eq.is-playing i:nth-child(2) { animation-delay: -300ms; }
+.eq.is-playing i:nth-child(3) { animation-delay: -600ms; }
+
+/* ---------- Bewegung reduzieren ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .view-enter,
+  .view-enter .path-stop,
+  .view-enter .stage,
+  .view-enter .tip,
+  .view-enter .phrase-part,
+  .node-bubble,
+  .ex-enter,
+  .feedback.is-open,
+  .line-enter,
+  .run-done > *,
+  .toast,
+  .wordcard,
+  .wordcard.is-sheet,
+  .dialog[open],
+  .sync-overlay .sync-panel,
+  .mini:not([hidden]) {
+    animation: enter-fade var(--motion-100) linear backwards;
+    animation-delay: 0ms;
+  }
+  .toast.is-leaving,
+  .wordcard.is-leaving,
+  .dialog.is-leaving,
+  .sync-overlay.is-leaving { animation: none; opacity: 0; }
+  .fx-shake, .fx-pop, .tap-btn.is-tapped { animation: none; }
+  .eq.is-playing i { animation: none; transform: scaleY(0.7); }
+
+  /* Karteikarte: kein 3D-Drehen, nur Überblenden */
+  .flash-inner { transition: none; transform: none !important; }
+  .flash-face { backface-visibility: visible; transition: opacity var(--motion-100) linear; }
+  .flash-back { transform: none; opacity: 0; pointer-events: none; }
+  .flash.is-flipped .flash-front { opacity: 0; pointer-events: none; }
+  .flash.is-flipped .flash-back { opacity: 1; pointer-events: auto; }
+
+  .btn, .option, .wtile, .pair, .grade, .stage-link, .node-face, .big-play, .speak-btn, .phrase-part {
+    transition-property: background-color, border-color, color, opacity;
+  }
+  .btn:active:not(:disabled), .option:active:not(:disabled), .wtile:active:not(:disabled),
+  .grade:active, .stage-link:active, .node:active .node-face, .big-play:active, .speak-btn:active, .phrase-part:active {
+    transform: none;
+  }
+  .bar-fill, .ring-fill { transition: none; }
+}

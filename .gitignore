@@ -1,0 +1,6 @@
+# Deine Musik bleibt lokal – niemals hochladen
+music/*
+!music/README.md
+
+.DS_Store
+node_modules/

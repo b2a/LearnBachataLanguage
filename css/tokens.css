@@ -1,0 +1,155 @@
+/* ==========================================================================
+   Design-Tokens: Farben, Typografie, Abstände, Bewegung.
+   Alle Komponenten nutzen nur diese Variablen, so lässt sich das Aussehen
+   an einer Stelle ändern.
+   ========================================================================== */
+
+:root {
+  /* Typografie */
+  --font-display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --fs-12: 0.75rem;
+  --fs-14: 0.875rem;
+  --fs-16: 1rem;
+  --fs-18: 1.125rem;
+  --fs-20: 1.25rem;
+  --fs-24: 1.5rem;
+  --fs-32: 2rem;
+  --fs-44: 2.75rem;
+
+  /* Abstände (4/8er-Raster) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-full: 999px;
+
+  /* Bewegung: nur diese Dauern verwenden */
+  --motion-100: 100ms;
+  --motion-150: 150ms;
+  --motion-200: 200ms;
+  --motion-300: 300ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+
+  /* Layout */
+  --sidebar-w: 240px;
+  --topbar-h: 60px;
+  --tabbar-h: 64px;
+  --mini-h: 64px;
+  --content-w: 760px;
+
+  /* Farben: Dunkel (Standard) – warme Club-Nacht */
+  color-scheme: dark;
+  --bg: #131016;
+  --surface-1: #1a161f;
+  --surface-2: #221d29;
+  --surface-3: #2b2534;
+  --border: #352f40;
+  --border-strong: #4b4358;
+  --text: #f4f0f7;
+  --text-2: #bcb3c7;
+  --text-3: #8c8398;
+  --accent: #ff6f59;
+  --accent-shadow: #c24a37;
+  --accent-ink: #250b06;
+  --accent-soft: rgba(255, 111, 89, 0.14);
+  --accent-text: #ff8a77;
+  --gold: #f6c255;
+  --gold-soft: rgba(246, 194, 85, 0.14);
+  --ok: #3fcf8e;
+  --ok-shadow: #2a9466;
+  --ok-soft: rgba(63, 207, 142, 0.14);
+  --ok-text: #5fe0a4;
+  --err: #ff5f6d;
+  --err-shadow: #c43a47;
+  --err-soft: rgba(255, 95, 109, 0.14);
+  --err-text: #ff8791;
+  --info: #7aa7ff;
+  --scrim: rgba(8, 5, 10, 0.6);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --cover-l1: 52%;
+  --cover-l2: 30%;
+}
+
+/* Hell – folgt dem System, solange nicht manuell „dunkel“ gewählt wurde */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+    --bg: #faf6f2;
+    --surface-1: #ffffff;
+    --surface-2: #f3ede7;
+    --surface-3: #ffffff;
+    --border: #e6ddd4;
+    --border-strong: #cfc3b7;
+    --text: #1e1820;
+    --text-2: #5a5160;
+    --text-3: #857b8b;
+    --accent: #e8543d;
+    --accent-shadow: #b23c29;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(232, 84, 61, 0.1);
+    --accent-text: #c4402b;
+    --gold: #c98d10;
+    --gold-soft: rgba(201, 141, 16, 0.12);
+    --ok: #1f9d63;
+    --ok-shadow: #167449;
+    --ok-soft: rgba(31, 157, 99, 0.1);
+    --ok-text: #157a4b;
+    --err: #d93848;
+    --err-shadow: #a52633;
+    --err-soft: rgba(217, 56, 72, 0.09);
+    --err-text: #b82a38;
+    --info: #3769d6;
+    --scrim: rgba(30, 24, 32, 0.4);
+    --shadow-1: 0 1px 2px rgba(60, 40, 30, 0.08);
+    --shadow-2: 0 8px 24px rgba(60, 40, 30, 0.14);
+    --cover-l1: 56%;
+    --cover-l2: 40%;
+  }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #faf6f2;
+  --surface-1: #ffffff;
+  --surface-2: #f3ede7;
+  --surface-3: #ffffff;
+  --border: #e6ddd4;
+  --border-strong: #cfc3b7;
+  --text: #1e1820;
+  --text-2: #5a5160;
+  --text-3: #857b8b;
+  --accent: #e8543d;
+  --accent-shadow: #b23c29;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(232, 84, 61, 0.1);
+  --accent-text: #c4402b;
+  --gold: #c98d10;
+  --gold-soft: rgba(201, 141, 16, 0.12);
+  --ok: #1f9d63;
+  --ok-shadow: #167449;
+  --ok-soft: rgba(31, 157, 99, 0.1);
+  --ok-text: #157a4b;
+  --err: #d93848;
+  --err-shadow: #a52633;
+  --err-soft: rgba(217, 56, 72, 0.09);
+  --err-text: #b82a38;
+  --info: #3769d6;
+  --scrim: rgba(30, 24, 32, 0.4);
+  --shadow-1: 0 1px 2px rgba(60, 40, 30, 0.08);
+  --shadow-2: 0 8px 24px rgba(60, 40, 30, 0.14);
+  --cover-l1: 56%;
+  --cover-l2: 40%;
+}

@@ -1,0 +1,177 @@
+/**
+ * Methoden von Polyglotten und Sprachforschern, sinngemäß zusammengefasst.
+ * Jede Methode ist mit einer Funktion der App verknüpft (action.route),
+ * damit aus dem Tipp sofort Praxis wird.
+ */
+export const TIPS = [
+  {
+    id: 'krashen',
+    person: 'Stephen Krashen',
+    who: 'Sprachwissenschaftler, Input-Hypothese',
+    title: 'Verständlicher Input',
+    short: 'Wir lernen Sprache, wenn wir verstehen, was wir hören, und zwar knapp über unserem Niveau.',
+    body: [
+      'Krashen unterscheidet zwischen „Lernen“ (Regeln pauken) und „Erwerben“ (Sprache aufsaugen). Erwerb passiert, wenn wir Botschaften verstehen, die ein kleines Stück über unserem Niveau liegen. Er nennt das „i+1“.',
+      'Außerdem: Stress und Angst wirken wie ein Filter („affective filter“). Entspannt und mit Freude kommt mehr an. Musik, die du liebst, senkt diesen Filter.',
+    ],
+    inApp: 'Erst blind hören, dann mit Text und Übersetzung mitlesen. So wird ein Song Schritt für Schritt verständlicher Input.',
+    action: { label: 'Mitlesen ausprobieren', route: '#/' },
+  },
+  {
+    id: 'kaufmann',
+    person: 'Steve Kaufmann',
+    who: 'Polyglotter, Mitgründer von LingQ',
+    title: 'Viel hören, Wörter sammeln, Vergessen ist okay',
+    short: 'Höre und lies sehr viel von Inhalten, die dich interessieren. Markiere unbekannte Wörter und hör denselben Inhalt mehrmals.',
+    body: [
+      'Kaufmann betont: Das Gehirn braucht viele Begegnungen mit einem Wort. Vergessen ist normal und kein Scheitern. Wiederholtes Hören desselben Textes ist besonders effektiv.',
+      'Er empfiehlt, Wörter und Phrasen aus echten Inhalten zu speichern, statt Listen ohne Zusammenhang zu lernen.',
+    ],
+    inApp: 'Tippe im Mitlese-Modus auf ein Wort, und es landet mit der Songzeile als Kontext in deinem Kartenstapel.',
+    action: { label: 'Zu meinen Wörtern', route: '#/words' },
+  },
+  {
+    id: 'arguelles',
+    person: 'Alexander Arguelles',
+    who: 'Polyglotter, bekannt für Shadowing',
+    title: 'Shadowing: wie ein Schatten nachsprechen',
+    short: 'Hör eine Aufnahme und sprich gleichzeitig laut mit, wie ein Echo, das fast synchron läuft.',
+    body: [
+      'Arguelles macht das beim zügigen Gehen draußen, aufrecht, laut und deutlich. Dabei trainierst du Aussprache, Rhythmus und Hörverstehen gleichzeitig.',
+      'Wichtig: erst mit Text, später ohne. Lieber kurze Abschnitte oft als lange einmal.',
+    ],
+    inApp: 'Im Shadowing-Modus wird jede Zeile in Schleife abgespielt, auf Wunsch langsamer. Du kannst dich aufnehmen und vergleichen.',
+    action: { label: 'Shadowing starten', route: '#/' },
+  },
+  {
+    id: 'lampariello',
+    person: 'Luca Lampariello',
+    who: 'Polyglotter, Coach',
+    title: 'Bidirektionale Übersetzung',
+    short: 'Übersetze einen Text in deine Muttersprache, und ein paar Tage später zurück in die Fremdsprache. Dann vergleichen.',
+    body: [
+      'Die Rückübersetzung zeigt dir genau, wo dein Englisch noch „deutsch“ denkt. Die Unterschiede zum Original sind deine persönlichen Lernpunkte.',
+      'Der Zeitabstand ist wichtig: So erinnerst du dich nicht wörtlich, sondern musst aktiv formulieren.',
+    ],
+    inApp: 'Speichere deine eigene Übersetzung einer Songzeile. Die Übung „Rückübersetzung“ fragt sie später in die Gegenrichtung ab.',
+    action: { label: 'Zur Lernreise', route: '#/' },
+  },
+  {
+    id: 'lewis',
+    person: 'Benny Lewis',
+    who: 'Polyglotter, „Fluent in 3 Months“',
+    title: 'Sprich ab Tag eins',
+    short: 'Warte nicht, bis du „bereit“ bist. Fehler sind Teil des Prozesses.',
+    body: [
+      'Lewis rät, sofort zu sprechen, auch mit wenigen Wörtern. Wer auf Perfektion wartet, spricht nie.',
+      'Singen ist der sanfteste Einstieg: Du hast Text, Melodie und Rhythmus als Stütze, und niemand korrigiert dich.',
+    ],
+    inApp: 'Sing mit! Nutze Shadowing und die Aufnahmefunktion. Hör dir selbst zu, ganz ohne Urteil.',
+    action: { label: 'Shadowing starten', route: '#/' },
+  },
+  {
+    id: 'wyner',
+    person: 'Gabriel Wyner',
+    who: 'Autor von „Fluent Forever“',
+    title: 'Aussprache zuerst, persönliche Verknüpfungen',
+    short: 'Lerne früh, wie Wörter klingen, und verknüpfe Vokabeln mit eigenen Bildern und Erlebnissen statt nur mit Übersetzungen.',
+    body: [
+      'Wyner kombiniert Spaced Repetition mit Bildern, Klang und persönlichen Erinnerungen. Ein Wort, das du mit einem Moment verbindest, bleibt hängen.',
+      'Für dich: Ein Wort aus einem Song, zu dem du getanzt hast, ist schon eine persönliche Erinnerung.',
+    ],
+    inApp: 'Jede Karte hat ein Feld für deine Eselsbrücke und einen Vorlese-Button für die Aussprache.',
+    action: { label: 'Karten wiederholen', route: '#/review' },
+  },
+  {
+    id: 'lomb',
+    person: 'Kató Lomb',
+    who: 'Ungarische Dolmetscherin, 16 Sprachen',
+    title: 'Motivation + Zeit ÷ Hemmung = Ergebnis',
+    short: 'Erfolg hängt davon ab, wie motiviert du bist, wie viel Zeit du investierst und wie wenig Hemmung dich bremst.',
+    body: [
+      'Lomb lernte viele Sprachen über Bücher, die sie wirklich lesen wollte. Interesse war ihr Motor.',
+      'Ihre Formel erklärt, warum Songs so gut funktionieren: hohe Motivation (du liebst die Musik), viel Zeit (du hörst sie ohnehin), wenig Hemmung (Singen macht Spaß).',
+    ],
+    inApp: 'Fang mit den Songs an, die du am liebsten tanzt. Die Lernreise ist ein Vorschlag, keine Pflicht.',
+    action: { label: 'Lernreise öffnen', route: '#/' },
+  },
+  {
+    id: 'machova',
+    person: 'Lýdia Machová',
+    who: 'Polyglotte, Sprachmentorin',
+    title: 'Genieße die Methode und hab ein System',
+    short: 'Polyglotte haben keine Sprachgene. Sie finden Methoden, die ihnen Spaß machen, und bleiben regelmäßig dran.',
+    body: [
+      'Machová beschreibt drei Gemeinsamkeiten erfolgreicher Lernender: Sie haben Spaß an ihrer Methode, sie haben ein System, und sie sind geduldig.',
+      'Lieber 15 Minuten täglich als drei Stunden am Sonntag.',
+    ],
+    inApp: 'Setz dir ein Tagesziel im Profil. Die Streak-Flamme hilft beim Dranbleiben.',
+    action: { label: 'Tagesziel einstellen', route: '#/profile' },
+  },
+  {
+    id: 'pimsleur',
+    person: 'Paul Pimsleur',
+    who: 'Sprachforscher',
+    title: 'Abrufen in wachsenden Abständen',
+    short: 'Wiederhole ein Wort kurz bevor du es vergisst, und erst raten, dann aufdecken.',
+    body: [
+      'Pimsleurs „graduated interval recall“: Die Abstände zwischen Wiederholungen wachsen (Sekunden, Minuten, Stunden, Tage).',
+      'Sein „Antizipationsprinzip“: Versuch die Antwort aktiv abzurufen, bevor du sie siehst. Das Anstrengen selbst festigt das Gedächtnis.',
+    ],
+    inApp: 'Die Wiederholung arbeitet wie Anki: Erst überlegen, dann umdrehen, dann ehrlich bewerten.',
+    action: { label: 'Wiederholen', route: '#/review' },
+  },
+  {
+    id: 'ebbinghaus',
+    person: 'Hermann Ebbinghaus',
+    who: 'Gedächtnisforscher (1885)',
+    title: 'Die Vergessenskurve',
+    short: 'Ohne Wiederholung vergessen wir schnell. Jede Wiederholung flacht die Kurve ab.',
+    body: [
+      'Ebbinghaus maß an sich selbst, wie schnell Gelerntes verblasst: am stärksten in den ersten Stunden und Tagen.',
+      'Daraus folgt: Kurze, rechtzeitige Wiederholungen schlagen langes Pauken.',
+    ],
+    inApp: 'Fällige Karten erscheinen als Zahl neben „Wiederholen“. Ein paar Minuten am Tag reichen.',
+    action: { label: 'Wiederholen', route: '#/review' },
+  },
+  {
+    id: 'richards',
+    person: 'Olly Richards',
+    who: 'Polyglotter, „StoryLearning“',
+    title: 'Intensiv und extensiv',
+    short: 'Wechsle zwischen intensivem Arbeiten (Zeile für Zeile verstehen) und extensivem Genießen (einfach laufen lassen).',
+    body: [
+      'Richards lernt mit Geschichten. Er arbeitet manche Passagen genau durch und lässt andere einfach auf sich wirken.',
+      'Ein Song ist eine Mini-Geschichte: Erst den Refrain intensiv knacken, dann den ganzen Song beim Tanzen extensiv hören.',
+    ],
+    inApp: 'Intensiv: Mitlesen und Üben. Extensiv: Musik-Player im Hintergrund, während du tanzt.',
+    action: { label: 'Musik verbinden', route: '#/library' },
+  },
+  {
+    id: 'pareto',
+    person: 'Viele Polyglotte',
+    who: 'Häufigkeitsprinzip',
+    title: 'Refrain zuerst',
+    short: 'Der Refrain wiederholt sich drei- bis viermal pro Song. Wer ihn versteht, versteht den Kern.',
+    body: [
+      'Häufige Wörter zuerst: Ein kleiner Teil der Wörter macht den Großteil jedes Textes aus. Bei Songs ist das noch extremer, wegen des Refrains.',
+      'Sing den Refrain mit, bis er sitzt. Die Strophen kommen danach fast von selbst.',
+    ],
+    inApp: 'Die App markiert Zeilen, die sich wiederholen, mit einem Refrain-Symbol, damit du dort anfangen kannst.',
+    action: { label: 'Zur Lernreise', route: '#/' },
+  },
+];
+
+/** Kurze Tipps für die Startseite (rotieren täglich). */
+export const DAILY_TIPS = [
+  'Hör einen Song erst ohne Text. Dein Gehirn sucht dann aktiv nach bekannten Wörtern. (Krashen)',
+  'Vergessen ist Teil des Lernens. Jede Wiederholung macht die Erinnerung stärker. (Ebbinghaus)',
+  'Sprich mit, auch wenn es holpert. Singen ist Sprechen mit Rückenwind. (Benny Lewis)',
+  'Lieber 10 Minuten jeden Tag als eine Stunde pro Woche. (Lýdia Machová)',
+  'Speichere Wörter mit ihrem Satz. Kontext ist der Kleber im Gedächtnis. (Steve Kaufmann)',
+  'Erst den Refrain knacken. Er kommt drei- bis viermal vor.',
+  'Übersetze eine Zeile ins Deutsche. In ein paar Tagen übersetzt du sie zurück und vergleichst. (Lampariello)',
+  'Verbinde ein Wort mit einem Tanzmoment. Persönliche Erinnerungen halten länger. (Gabriel Wyner)',
+  'Langsamer abspielen ist kein Schummeln. Arguelles schattet erst langsam, dann im Originaltempo.',
+  'Motivation + Zeit ÷ Hemmung = Erfolg. Wähle Songs, die du liebst. (Kató Lomb)',
+];

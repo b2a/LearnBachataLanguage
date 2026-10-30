@@ -1,0 +1,11 @@
+{
+  "name": "Bachatalingo",
+  "short_name": "Bachatalingo",
+  "description": "Sprachen lernen mit Bachata-Remixen",
+  "lang": "de",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#131016",
+  "theme_color": "#131016",
+  "icons": [{ "src": "assets/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
