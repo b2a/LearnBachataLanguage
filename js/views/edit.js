@@ -6,7 +6,8 @@
  */
 import { h, clear, fmtTime, download, prefersReducedMotion, fill } from '../core/dom.js';
 import { icon } from '../core/icons.js';
-import { SONG_BY_ID } from '../../data/songs.js';
+import { SONG_BY_ID, LANGS, setSongLang } from '../../data/songs.js';
+import { clearJourneyCache } from '../core/journey.js';
 import { getLyrics, saveLyrics, deleteLyrics, searchLRCLIB, fromLRCLIB, parseAny, toLRC } from '../core/lyrics.js';
 import { player } from '../core/player.js';
 import { on } from '../core/events.js';
@@ -34,11 +35,22 @@ export function editView(ctx) {
         h('div.edit-title', cover(song, 'sm'), h('div', h('h1', 'Songtext'), h('p.page-sub', `${song.title} · ${song.artist}`))),
       ),
       h('p.notice.notice-plain', icon('lock', 18), h('span', 'Songtexte sind urheberrechtlich geschützt. Sie werden nur in deinem Browser gespeichert und nicht veröffentlicht.')),
+      langRow(),
       lyr ? currentBox(lyr) : null,
       searchBox(!lyr),
       pasteBox(lyr),
     );
     if (autoSync && lyr) { autoSync = false; openSync(); }
+  }
+
+  /* ---------- Sprache des Songs ---------- */
+  function langRow() {
+    const sel = h('select.select.select-sm', { id: 'song-lang', onChange: (e) => {
+      setSongLang(song.id, e.target.value);
+      clearJourneyCache();
+      toast(`„${song.title}“ gehört jetzt zur Lernsprache ${LANGS[e.target.value].label}.`, { kind: 'ok' });
+    } }, Object.entries(LANGS).filter(([, l]) => l.learnable).map(([k, l]) => h('option', { value: k, selected: k === song.lang }, l.label)));
+    return h('div.lang-row', h('label.small', { for: 'song-lang' }, 'Sprache des Songtexts'), sel);
   }
 
   /* ---------- Aktueller Stand ---------- */

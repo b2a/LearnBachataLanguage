@@ -1,4 +1,5 @@
 /** App-Hülle: Navigation, Statusleiste (Streak, XP, Tagesziel) und Mini-Player. */
+import { cardsInTarget } from '../core/deck.js';
 import { h, clear, fmtTime, fill } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { on } from '../core/events.js';
@@ -6,6 +7,7 @@ import { state } from '../core/state.js';
 import { countDue } from '../core/srs.js';
 import { currentStreak, goalPct, levelInfo, todayXP } from '../core/gamify.js';
 import { player } from '../core/player.js';
+import { LANGS } from '../../data/songs.js';
 import { ring, cover } from './widgets.js';
 import { currentPath } from '../core/router.js';
 import { toast } from './toast.js';
@@ -34,6 +36,7 @@ export function mountShell(root) {
     return a;
   });
 
+  const langEl = h('a.stat-chip.stat-lang', { href: '#/', title: 'Lernsprache (auf der Startseite ändern)' });
   const streakEl = h('a.stat-chip.stat-streak', { href: '#/profile', title: 'Tage in Folge' });
   const xpEl = h('a.stat-chip.stat-xp', { href: '#/profile', title: 'Erfahrungspunkte' });
   const goalEl = h('a.stat-goal', { href: '#/profile', title: 'Tagesziel' });
@@ -48,7 +51,7 @@ export function mountShell(root) {
 
   const topbar = h('header.topbar',
     h('a.brand.brand-compact', { href: '#/', 'aria-label': 'Startseite' }, h('span.brand-mark', { 'aria-hidden': 'true' }, logo()), h('span.brand-name', 'Bachata', h('em', 'lingo'))),
-    h('div.topbar-stats', streakEl, xpEl, goalEl),
+    h('div.topbar-stats', langEl, streakEl, xpEl, goalEl),
   );
 
   const outlet = h('main.outlet', { id: 'main', tabindex: '-1' });
@@ -63,6 +66,9 @@ export function mountShell(root) {
   );
 
   function renderStats() {
+    const tl = LANGS[state.settings.targetLang || 'es'];
+    fill(langEl, h('span', { 'aria-hidden': 'true' }, tl.flag), h('span', tl.short));
+    langEl.setAttribute('aria-label', `Lernsprache: ${tl.label}`);
     const streak = currentStreak();
     const lv = levelInfo();
     fill(streakEl, icon('flame', 18), h('span', String(streak)));
@@ -73,7 +79,7 @@ export function mountShell(root) {
     const pct = goalPct();
     fill(goalEl, ring(pct, { size: 34, stroke: 4 }), h('span.goal-text', `${todayXP()}/${state.profile.dailyGoal}`));
     goalEl.setAttribute('aria-label', `Tagesziel: ${todayXP()} von ${state.profile.dailyGoal} XP`);
-    const due = countDue(state.cards, { newLimit: state.settings.newPerDay, newSeenToday: newSeenToday() });
+    const due = countDue(cardsInTarget(), { newLimit: state.settings.newPerDay, newSeenToday: newSeenToday() });
     [...navLinks, ...tabbar.children].forEach((a) => {
       if (!a._badge) return;
       a._badge.hidden = !due;

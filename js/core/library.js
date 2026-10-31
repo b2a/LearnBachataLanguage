@@ -8,7 +8,8 @@
  *
  * Die Dateien verlassen dabei nie deinen Rechner.
  */
-import { SONGS } from '../../data/songs.js';
+import { SONGS, addUserSongs } from '../../data/songs.js';
+import { parseSongLine } from './songparse.js';
 import { idbGet, idbSet, idbDel } from './idb.js';
 import { normName } from './text.js';
 import { emit } from './events.js';
@@ -17,6 +18,7 @@ const AUDIO_EXT = /\.(mp3|m4a|aac|mp4|ogg|oga|opus|webm|wav|flac)$/i;
 const sources = new Map(); // songId → { url, name, via }
 let folderName = null;
 let pendingHandle = null; // gespeicherter Handle, der noch eine Berechtigung braucht
+let unmatchedFiles = []; // Dateien ohne passenden Song (können als neue Songs übernommen werden)
 
 export const supportsFolderAccess = () => 'showDirectoryPicker' in window;
 
@@ -47,12 +49,13 @@ function register(file, via) {
 
 /** Weg 2: FileList aus <input type=file>. */
 export function addFiles(fileList) {
+  unmatchedFiles = [];
   const matched = [];
   const unmatched = [];
   for (const f of fileList) {
     if (!AUDIO_EXT.test(f.name)) continue;
     const s = register(f, 'auswahl');
-    if (s) matched.push(s); else unmatched.push(f.name);
+    if (s) matched.push(s); else { unmatched.push(f.name); unmatchedFiles.push({ file: f, via: 'auswahl' }); }
   }
   emit('library', { matched, unmatched });
   return { matched, unmatched };
@@ -75,6 +78,7 @@ export async function pickFolder() {
 
 async function scanHandle(handle) {
   folderName = handle.name;
+  unmatchedFiles = [];
   const files = [];
   async function walk(dir, depth) {
     for await (const entry of dir.values()) {
@@ -87,7 +91,7 @@ async function scanHandle(handle) {
   const unmatched = [];
   for (const f of files) {
     const s = register(f, 'ordner');
-    if (s) matched.push(s); else unmatched.push(f.name);
+    if (s) matched.push(s); else { unmatched.push(f.name); unmatchedFiles.push({ file: f, via: 'ordner' }); }
   }
   pendingHandle = null;
   emit('library', { matched, unmatched });
@@ -184,4 +188,25 @@ export function libraryStatus() {
 export function youtubeSearch(song) {
   const q = `${song.artist.replace(/\(.*?\)/g, '')} ${song.title} ${song.remix || ''} bachata`;
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(q.replace(/\s+/g, ' ').trim())}`;
+}
+
+export function unmatchedCount() {
+  return unmatchedFiles.length;
+}
+
+/** Unbekannte Dateien als neue Songs anlegen (Name „Interpret - Titel“) und gleich verbinden. */
+export function adoptUnmatched(lang = 'es') {
+  const created = [];
+  for (const { file, via } of unmatchedFiles) {
+    const parsed = parseSongLine(file.name, { file: file.name, lang });
+    if (!parsed) continue;
+    const [song] = addUserSongs([parsed]);
+    const target = song || matchFile(file.name);
+    if (!target) continue;
+    sources.set(target.id, { url: URL.createObjectURL(file), name: file.name, via });
+    if (song) created.push(song);
+  }
+  unmatchedFiles = [];
+  emit('library', { matched: created, unmatched: [] });
+  return created;
 }

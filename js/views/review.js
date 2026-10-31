@@ -2,6 +2,7 @@
  * Wiederholen im Anki-Stil:
  * Vorderseite → erst selbst erinnern → umdrehen → ehrlich bewerten (Nochmal/Schwer/Gut/Einfach).
  */
+import { cardsInTarget } from '../core/deck.js';
 import { h, clear, fill } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { state, update } from '../core/state.js';
@@ -19,7 +20,7 @@ import { tipBox } from './common.js';
 
 export function reviewView(ctx) {
   const root = h('div.page.page-review');
-  const queue = buildQueue(state.cards, { newLimit: state.settings.newPerDay, newSeenToday: newSeenToday() });
+  const queue = buildQueue(cardsInTarget(), { newLimit: state.settings.newPerDay, newSeenToday: newSeenToday() });
   const total = queue.length;
   let done = 0;
   let xp = 0;
@@ -28,7 +29,7 @@ export function reviewView(ctx) {
   let onKey = null;
 
   if (!total) {
-    const all = Object.values(state.cards);
+    const all = Object.values(cardsInTarget());
     root.append(
       h('header.page-head', h('div', h('h1', 'Wiederholen'), h('p.page-sub', 'Spaced Repetition wie bei Anki: Jede Karte kommt genau dann, wenn du sie fast vergessen hättest.'))),
       empty(all.length ? 'Alles erledigt für heute' : 'Noch keine Karten',
@@ -40,7 +41,7 @@ export function reviewView(ctx) {
   }
 
   function quiz() {
-    const r = runSession({ title: 'Schnellquiz', items: cardsQuiz(Object.values(state.cards)), backHref: '#/review', onExit: () => (location.hash = '#/') });
+    const r = runSession({ title: 'Schnellquiz', items: cardsQuiz(Object.values(cardsInTarget())), backHref: '#/review', onExit: () => (location.hash = '#/') });
     ctx.onLeave(r.cleanup);
     fill(root, r);
   }

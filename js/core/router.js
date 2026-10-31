@@ -48,6 +48,16 @@ async function render() {
   const ctx = { params, query, path, onLeave: (fn) => cleanups.push(fn) };
 
   let view;
+  // Dauert eine Seite länger (z. B. Songtext wird geladen), kurz einen Ladehinweis zeigen
+  const loader = setTimeout(() => {
+    if (id !== navId) return;
+    clear(outlet);
+    const l = document.createElement('div');
+    l.className = 'page page-loading';
+    l.setAttribute('aria-busy', 'true');
+    l.innerHTML = '<div class="skeleton" style="height:40px;width:50%"></div><div class="skeleton"></div><div class="skeleton"></div><p class="muted">Lade Songtext …</p>';
+    outlet.append(l);
+  }, 250);
   try {
     view = await r.view(ctx);
   } catch (err) {
@@ -56,6 +66,7 @@ async function render() {
     view.className = 'page';
     view.innerHTML = '<h1>Da ist etwas schiefgelaufen</h1><p class="muted">Lade die Seite neu. Deine Fortschritte sind gespeichert.</p>';
   }
+  clearTimeout(loader);
   if (id !== navId) return; // inzwischen weiter navigiert
 
   clear(outlet);

@@ -6,6 +6,9 @@ Songtexte verstehen, Vokabeln sammeln, mitsingen. Mit Methoden von Polyglotten.
 
 Kein Build-Schritt, keine Abhängigkeiten, kein Server: reines HTML, CSS und JavaScript (ES-Module).
 
+**Lernsprachen:** Spanisch (Standard), Englisch, Portugiesisch, Rumänisch. Umschalten auf der Startseite oder im Profil.
+Jede Sprache hat ihren eigenen Lernpfad, eigene Lektionen und eigene Karteikarten.
+
 ---
 
 ## Die Lernreise
@@ -67,7 +70,13 @@ Wort-Definitionen und Lautschrift stammen von [dictionaryapi.dev](https://dictio
 
 Alles Inhaltliche liegt als Daten in `data/`. Für neue Inhalte musst du keinen App-Code anfassen.
 
-### Neuen Song hinzufügen
+### Viele Songs auf einmal (empfohlen)
+- **In der App:** Musik → *Songs hinzufügen* → Liste einfügen („Interpret - Titel“, eine Zeile pro Song). Oder den Musikordner verbinden und *Als neue Songs übernehmen* klicken.
+- **Für alle (im Repo):** Zeilen in `tools/song-list.txt` ergänzen und `python3 tools/build_catalog.py` ausführen.
+  Das Skript sucht jeden Song in LRCLIB, erkennt die Sprache am Text und schreibt `data/catalog.js` (nur Metadaten und die LRCLIB-ID, keine Texte).
+  Katalog-Songs werden automatisch in Units einsortiert (`js/core/journey.js`).
+
+### Neuen Song von Hand (mit eigener Titel-Lektion)
 1. In `data/songs.js` einen Eintrag anhängen (Vorlage: ein vorhandener Song). Pflicht sind `id`, `title`, `artist`, `lang`, `file`, `hue`, `level`, `mood`, `title_lesson` und `vocab`.
 2. In `data/units.js` die ID in eine Unit eintragen: `{ song: 'meine-id' }`.
 3. Fertig. Übungen, Quiz und Karten werden automatisch erzeugt.

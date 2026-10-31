@@ -7,7 +7,7 @@ import { ACHIEVEMENTS } from '../../data/achievements.js';
 import { SONGS } from '../../data/songs.js';
 import { songPct } from '../core/progress.js';
 import { on } from '../core/events.js';
-import { pageHeader, bar, btn } from '../ui/widgets.js';
+import { pageHeader, bar, btn, langPicker } from '../ui/widgets.js';
 import { toast } from '../ui/toast.js';
 import { applyTheme } from '../core/theme.js';
 
@@ -73,7 +73,9 @@ export function profileView(ctx) {
     };
     return h('section.card',
       h('h2.card-title', 'Einstellungen'),
-      h('div.form-grid',
+      h('p.field-label', 'Lernsprache'),
+      langPicker({ compact: true }),
+      h('div.form-grid', { style: { marginTop: '16px' } },
         h('div.field', h('label', { for: 'set-goal' }, 'Tagesziel'), goal),
         h('div.field', h('label', { for: 'set-new' }, 'Neue Karten'), newPer),
         h('div.field', h('label', { for: 'set-theme' }, 'Darstellung'), theme),

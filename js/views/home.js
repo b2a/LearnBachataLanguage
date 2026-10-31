@@ -1,7 +1,10 @@
 /** Startseite: Begrüßung, Tagesimpuls und der Lernpfad (Units mit Stationen). */
+import { cardsInTarget } from '../core/deck.js';
 import { h } from '../core/dom.js';
 import { icon } from '../core/icons.js';
-import { UNITS } from '../../data/units.js';
+import { unitsFor, targetLang } from '../core/journey.js';
+import { langPicker } from '../ui/widgets.js';
+import { LANGS } from '../../data/songs.js';
 import { SONG_BY_ID } from '../../data/songs.js';
 import { LESSON_BY_ID } from '../../data/lessons.js';
 import { DAILY_TIPS } from '../../data/tips.js';
@@ -15,9 +18,10 @@ import { newSeenToday } from '../ui/shell.js';
 
 export function homeView() {
   const next = nextStop();
-  const due = countDue(state.cards, { newLimit: state.settings.newPerDay, newSeenToday: newSeenToday() });
+  const due = countDue(cardsInTarget(), { newLimit: state.settings.newPerDay, newSeenToday: newSeenToday() });
   const dayIndex = Math.floor(Date.now() / 86400000) % DAILY_TIPS.length;
   const lib = libraryStatus();
+  const units = unitsFor();
 
   const greeting = (() => {
     const hr = new Date().getHours();
@@ -32,8 +36,9 @@ export function homeView() {
     h('section.home-hero',
       h('div.home-hello',
         h('p.eyebrow', greeting),
-        h('h1', 'Deine Lernreise'),
+        h('h1', `Deine Lernreise: ${LANGS[targetLang()]?.label || ''}`),
         h('p.page-sub', 'Verstehe die Songs, zu denen du tanzt. Station für Station, Zeile für Zeile.'),
+        langPicker(),
       ),
       h('div.home-tiles',
         continueCard,
@@ -54,9 +59,17 @@ export function homeView() {
       ),
       h('div.home-today.muted', h('span', icon('flame', 16), ` ${currentStreak()} Tage Streak`), h('span', icon('bolt', 16), ` ${todayXP()} XP heute`)),
     ),
-    ...UNITS.map((u, ui) => unitSection(u, ui, next)),
+    ...(units.length ? units.map((u, ui) => unitSection(u, ui, next && { ...next, unitIndex: units.indexOf(next.unit) })) : [emptyLang()]),
   );
   return el;
+}
+
+function emptyLang() {
+  return h('div.empty',
+    h('h3', `Noch keine Songs auf ${LANGS[targetLang()]?.label}`),
+    h('p.muted', 'Füge Songs hinzu: als Liste einfügen oder Dateien aus deinem Musikordner übernehmen. Die Sprache erkennt die App am Songtext.'),
+    h('a.btn.btn-primary', { href: '#/library' }, 'Songs hinzufügen'),
+  );
 }
 
 function continueTile(next) {
@@ -81,14 +94,16 @@ function continueTile(next) {
 function unitSection(unit, ui, next) {
   const pct = unitPct(unit);
   let n = 0;
-  return h('section.unit', { style: { '--uh': unit.hue }, 'aria-labelledby': `unit-${unit.id}` },
-    h('header.unit-head',
+  // Offen: Units mit Fortschritt, die aktuelle und die nächste. Der Rest ist zugeklappt.
+  const open = pct > 0 || ui <= (next ? next.unitIndex + 1 : 1);
+  return h(`details.unit${unit.muted ? '.is-muted' : ''}`, { style: { '--uh': unit.hue }, open: open || null },
+    h('summary.unit-head',
       h('div',
         h('p.eyebrow', `Unit ${ui + 1}`),
         h('h2', { id: `unit-${unit.id}` }, unit.title),
         h('p.muted', unit.goal),
       ),
-      h('div.unit-progress', bar(pct), h('span.muted', `${Math.round(pct * 100)} %`)),
+      h('div.unit-progress', bar(pct), h('span.muted', `${Math.round(pct * 100)} %`), h('span.unit-count.muted', `${unit.stops.length} Stationen`), icon('chevronDown', 18)),
     ),
     h('ol.path', unit.stops.map((stop) => {
       const isNext = next && next.stop === stop;

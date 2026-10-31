@@ -4,3 +4,4 @@ music/*
 
 .DS_Store
 node_modules/
+tools/.lrclib-cache.json

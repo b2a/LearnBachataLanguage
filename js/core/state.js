@@ -26,6 +26,7 @@ const DEFAULTS = () => ({
   lessons: {}, // lessonId → { done, best }
   cards: {}, // cardId → Karte (siehe srs.js)
   settings: {
+    targetLang: 'es', // Lernsprache: 'es' | 'en' | 'pt' | 'ro'
     theme: 'auto', // 'auto' | 'dark' | 'light'
     reverseCards: false,
     lyricView: 'both', // 'orig' | 'both' | 'tr'

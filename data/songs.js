@@ -1,3 +1,5 @@
+import { CATALOG } from './catalog.js';
+
 /**
  * Song-Katalog
  * ------------------------------------------------------------------
@@ -792,11 +794,79 @@ export const SONGS = [
   },
 ];
 
+/* ------------------------------------------------------------------
+ * Katalog + eigene Songs zusammenführen.
+ * CATALOG (data/catalog.js) wird von tools/build_catalog.py erzeugt,
+ * eigene Songs legt die App selbst an (Musik → Songs hinzufügen).
+ * ------------------------------------------------------------------ */
+const USER_KEY = 'bachatalingo.userSongs';
+const norm = (x) => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Fehlende Felder für automatisch angelegte Songs ergänzen. */
+function complete(s) {
+  let hash = 0;
+  for (const c of s.id) hash = (hash * 31 + c.charCodeAt(0)) % 360;
+  return {
+    level: 2, mood: '', file: '', match: [], vocab: [], hue: hash, auto: true,
+    lyrics: { track: s.title, artist: (s.artist || '').split(',')[0] },
+    ...s,
+  };
+}
+
 export const SONG_BY_ID = Object.fromEntries(SONGS.map((s) => [s.id, s]));
 
+/** Songs zur Laufzeit hinzufügen (Katalog, eigene Songs). Gleiche Titel+Sprache werden übersprungen. */
+export function registerSongs(list) {
+  const taken = new Set(SONGS.map((s) => `${s.lang}|${norm(s.title)}|${norm((s.artist || '').split(/[,&]/)[0])}`));
+  const added = [];
+  for (const raw of list) {
+    const s = complete(raw);
+    const key = `${s.lang}|${norm(s.title)}|${norm((s.artist || '').split(/[,&]/)[0])}`;
+    if (taken.has(key)) continue;
+    let id = s.id;
+    for (let n = 2; SONG_BY_ID[id]; n++) id = `${s.id}-${n}`;
+    s.id = id;
+    taken.add(key);
+    SONGS.push(s);
+    SONG_BY_ID[id] = s;
+    added.push(s);
+  }
+  return added;
+}
+
+export function userSongs() {
+  try { return JSON.parse(localStorage.getItem(USER_KEY) || '[]'); } catch { return []; }
+}
+
+/** Eigene Songs dauerhaft speichern und sofort registrieren. */
+export function addUserSongs(list) {
+  const added = registerSongs(list.map((s) => ({ ...s, user: true })));
+  if (added.length) localStorage.setItem(USER_KEY, JSON.stringify([...userSongs(), ...added]));
+  return added;
+}
+
+/** Sprache eines Songs ändern (z. B. nach Erkennung aus dem Songtext). */
+export function setSongLang(id, lang) {
+  const s = SONG_BY_ID[id];
+  if (!s || s.lang === lang) return;
+  s.lang = lang;
+  const over = JSON.parse(localStorage.getItem('bachatalingo.langOverride') || '{}');
+  over[id] = lang;
+  localStorage.setItem('bachatalingo.langOverride', JSON.stringify(over));
+}
+
+registerSongs(CATALOG);
+registerSongs(userSongs());
+try {
+  for (const [id, lang] of Object.entries(JSON.parse(localStorage.getItem('bachatalingo.langOverride') || '{}'))) {
+    if (SONG_BY_ID[id]) SONG_BY_ID[id].lang = lang;
+  }
+} catch { /* egal */ }
+
 export const LANGS = {
-  en: { label: 'Englisch', short: 'EN', tts: 'en-US' },
-  es: { label: 'Spanisch', short: 'ES', tts: 'es-ES' },
-  ro: { label: 'Rumänisch', short: 'RO', tts: 'ro-RO' },
+  es: { label: 'Spanisch', short: 'ES', tts: 'es-ES', flag: '🇪🇸', learnable: true },
+  en: { label: 'Englisch', short: 'EN', tts: 'en-US', flag: '🇬🇧', learnable: true },
+  pt: { label: 'Portugiesisch', short: 'PT', tts: 'pt-BR', flag: '🇧🇷', learnable: true },
+  ro: { label: 'Rumänisch', short: 'RO', tts: 'ro-RO', flag: '🇷🇴', learnable: true },
   de: { label: 'Deutsch', short: 'DE', tts: 'de-DE' },
 };

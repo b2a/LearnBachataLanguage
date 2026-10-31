@@ -2,8 +2,9 @@
  * Erzeugt Übungen automatisch aus Song-Daten, Songtext und Kartenstapel.
  * Funktioniert für jeden neuen Song ohne Zusatzarbeit.
  */
-import { SONGS } from '../../data/songs.js';
-import { DICT, STOPWORDS } from '../../data/dictionary.js';
+import { SONGS, LANGS } from '../../data/songs.js';
+import { dictFor, stopsFor, STOPS } from '../../data/dictionary.js';
+import { state } from '../core/state.js';
 import { shuffle, sample } from '../core/dom.js';
 import { tokenize, words, normAnswer, normWord } from '../core/text.js';
 import { chorusLines, lineSpan } from '../core/lyrics.js';
@@ -14,7 +15,8 @@ const INTERJECTION = /^(oh+|ooh+|ah+|yeah+|hey+|la+|na+|uh+|woah+|whoa+|mm+|ay+|
 function distractorsDe(correct, lang, n = 3) {
   const pool = new Set();
   SONGS.filter((s) => s.lang === lang).forEach((s) => s.vocab.forEach((v) => pool.add(v.de)));
-  if (lang === 'en') Object.values(DICT).forEach((d) => pool.add(d));
+  Object.values(dictFor(lang)).forEach((d) => pool.add(d));
+  if (pool.size < 8) Object.values(dictFor('es')).forEach((d) => pool.add(d));
   pool.delete(correct);
   return sample([...pool].filter((d) => d.length < 60), n);
 }
@@ -22,6 +24,7 @@ function distractorsDe(correct, lang, n = 3) {
 function distractorsTerm(correct, lang, n = 3) {
   const pool = new Set();
   SONGS.filter((s) => s.lang === lang).forEach((s) => s.vocab.forEach((v) => pool.add(v.term)));
+  if (pool.size < 8) Object.keys(dictFor(lang)).forEach((t) => pool.add(t));
   pool.delete(correct);
   return sample([...pool], n);
 }
@@ -54,9 +57,9 @@ function pickGapWord(text, lang) {
   const toks = tokenize(text);
   const cand = toks
     .map((t, idx) => ({ ...t, idx }))
-    .filter((t) => t.word && t.text.length >= 3 && !STOPWORDS.has(normWord(t.text)) && !INTERJECTION.test(t.text));
+    .filter((t) => t.word && t.text.length >= 3 && !stopsFor(lang).has(normWord(t.text)) && !INTERJECTION.test(t.text));
   if (!cand.length) return null;
-  const known = lang === 'en' ? cand.filter((t) => DICT[normWord(t.text)]) : [];
+  const known = cand.filter((t) => dictFor(lang)[normWord(t.text)]);
   const chosen = (known.length ? known : cand)[Math.floor(Math.random() * (known.length || cand.length))];
   return { toks, chosen };
 }
@@ -69,7 +72,7 @@ function clozeFromLine(line, lang, allWords, withOptions) {
   const answer = g.chosen.text;
   const item = { type: 'cloze', before, after, answer, lang, tr: line.mine || line.tr || '' };
   if (withOptions) {
-    const others = shuffle([...new Set(allWords.filter((w) => normWord(w) !== normWord(answer) && w.length >= 3 && !STOPWORDS.has(normWord(w))))]);
+    const others = shuffle([...new Set(allWords.filter((w) => normWord(w) !== normWord(answer) && w.length >= 3 && !stopsFor(lang).has(normWord(w))))]);
     // ähnlich lange Wörter sind die besseren Ablenker
     others.sort((a, b) => Math.abs(a.length - answer.length) - Math.abs(b.length - answer.length));
     const wrong = others.slice(0, 3);
@@ -86,13 +89,15 @@ function clozeFromLine(line, lang, allWords, withOptions) {
 export function songPractice(song, lyr, { audio = false, duration = Infinity } = {}) {
   const lang = song.lang;
   const items = [];
-  const vocab = song.vocab;
+  const vocab = songVocab(song);
 
-  // 1) Wortschatz
+  // 1) Wortschatz (nur wenn genug Wörter bekannt sind)
+  if (vocab.length >= 4) {
   sample(vocab, 2).forEach((v) => items.push(mcItem(`Was bedeutet „${v.term}“?`, v.de, distractorsDe(v.de, lang), { speak: v.term.replace(/^to /, ''), lang, kicker: 'Wortschatz' })));
   const rv = sample(vocab, 1)[0];
-  items.push(mcItem(`Wie heißt „${rv.de}“ auf ${lang === 'en' ? 'Englisch' : lang === 'es' ? 'Spanisch' : 'Rumänisch'}?`, rv.term, distractorsTerm(rv.term, lang), { lang, kicker: 'Wortschatz' }));
+  items.push(mcItem(`Wie heißt „${rv.de}“ auf ${LANGS[lang]?.label || lang}?`, rv.term, distractorsTerm(rv.term, lang), { lang, kicker: 'Wortschatz' }));
   items.push({ type: 'pairs', pairs: sample(vocab, Math.min(5, vocab.length)).map((v) => [v.term, v.de]) });
+  }
 
   // 2) Aus dem Songtext
   const lines = usableLines(lyr);
@@ -132,12 +137,14 @@ export function songPractice(song, lyr, { audio = false, duration = Infinity } =
   }
 
   // 3) Hören
-  const lv = sample(vocab, 1)[0];
-  const opts = shuffle([lv.term, ...distractorsTerm(lv.term, lang)]);
-  items.push({ type: 'listen', speak: lv.term.replace(/^to /, ''), options: opts, answer: opts.indexOf(lv.term), lang });
+  if (vocab.length) {
+    const lv = sample(vocab, 1)[0];
+    const opts = shuffle([lv.term, ...distractorsTerm(lv.term, lang)]);
+    items.push({ type: 'listen', speak: lv.term.replace(/^to /, ''), options: opts, answer: opts.indexOf(lv.term), lang });
+  }
 
   // Paare und Wortschatz zuerst (Aufwärmen), dann gemischt
-  const warm = items.slice(0, 4);
+  const warm = items.slice(0, vocab.length >= 4 ? 4 : 0);
   return [...warm, ...shuffle(items.slice(4))];
 }
 
@@ -175,4 +182,28 @@ export function cardsQuiz(cards) {
     }
     return mcItem(`Was bedeutet „${c.front}“?`, c.back, distractorsDe(c.back, c.lang), { speak: c.front, lang: c.lang });
   });
+}
+
+/**
+ * Wortfeld eines Songs: kuratierte Vokabeln, sonst die in der Station „Wörter“
+ * gesammelten Wörter, sonst die Karten, die aus diesem Song stammen.
+ */
+export function songVocab(song) {
+  if (song.vocab?.length) return song.vocab;
+  const saved = state.progress[song.id]?.vocab;
+  if (saved?.length) return saved;
+  return Object.values(state.cards).filter((c) => c.songId === song.id && !c.reverse).map((c) => ({ term: c.front, de: c.back }));
+}
+
+/** Häufigste Inhaltswörter eines Songtexts (für die Station „Wörter“ bei Katalog-Songs). */
+export function topWords(lyr, lang, n = 10) {
+  const count = new Map();
+  for (const l of lyr?.lines || []) {
+    for (const w of words(l.text)) {
+      const k = normWord(w);
+      if (k.length < 3 || INTERJECTION.test(k) || Object.values(STOPS).some((set) => set.has(k))) continue;
+      count.set(k, (count.get(k) || 0) + 1);
+    }
+  }
+  return [...count].sort((a, b) => b[1] - a[1]).slice(0, n).map(([w, c]) => ({ term: w, count: c }));
 }

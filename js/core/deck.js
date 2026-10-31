@@ -46,3 +46,9 @@ export function addSongVocab(song) {
   }
   return n;
 }
+
+/** Nur die Karten der aktuellen Lernsprache (als Objekt id → Karte, wie state.cards). */
+export function cardsInTarget() {
+  const lang = state.settings.targetLang || 'es';
+  return Object.fromEntries(Object.entries(state.cards).filter(([, c]) => c.lang === lang));
+}

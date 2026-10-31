@@ -13,6 +13,7 @@ import { toast } from '../ui/toast.js';
 export function wordsView(ctx) {
   let q = '';
   let filter = 'all';
+  let allLangs = false;
   const listEl = h('div.word-list');
   const countEl = h('span.muted');
 
@@ -27,6 +28,7 @@ export function wordsView(ctx) {
   function render() {
     const cards = Object.values(state.cards)
       .filter((c) => !c.reverse)
+      .filter((c) => allLangs || c.lang === (state.settings.targetLang || 'es'))
       .filter((c) => filter === 'all' || (filter === 'learning' ? c.state === 'learning' || c.state === 'relearning' : c.state === filter))
       .filter((c) => !q || c.front.toLowerCase().includes(q) || c.back.toLowerCase().includes(q))
       .sort((a, b) => b.created - a.created);
@@ -58,7 +60,7 @@ export function wordsView(ctx) {
     const back = h('input.input', { id: 'wd-back', value: card?.back || '' });
     const note = h('input.input', { id: 'wd-note', value: card?.note || '', placeholder: 'optional' });
     const example = h('input.input', { id: 'wd-ex', value: card?.example || '', placeholder: 'optional, z. B. die Songzeile' });
-    const lang = h('select.select', { id: 'wd-lang' }, ['en', 'es', 'ro'].map((l) => h('option', { value: l, selected: (card?.lang || 'en') === l }, LANGS[l].label)));
+    const lang = h('select.select', { id: 'wd-lang' }, ['es', 'en', 'pt', 'ro'].map((l) => h('option', { value: l, selected: (card?.lang || state.settings.targetLang || 'es') === l }, LANGS[l].label)));
     const err = h('p.field-error', { role: 'alert' });
     const save = () => {
       if (!front.value.trim() || !back.value.trim()) { err.textContent = 'Wort und Bedeutung werden gebraucht.'; return; }
@@ -99,7 +101,9 @@ export function wordsView(ctx) {
 
   return h('div.page.page-words',
     pageHeader('Meine Wörter', 'Alles, was du aus Songs gesammelt hast.', btn('Wort hinzufügen', { kind: 'primary', ic: 'plus', onClick: () => editDialog() })),
-    h('div.toolbar', h('div.search-wrap', icon('search', 18), search), filters, countEl),
+    h('div.toolbar', h('div.search-wrap', icon('search', 18), search), filters,
+      h('label.chip', h('input', { type: 'checkbox', onChange: (e) => { allLangs = e.target.checked; render(); } }), ' Alle Sprachen'),
+      countEl),
     listEl,
   );
 }

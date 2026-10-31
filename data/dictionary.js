@@ -373,3 +373,15 @@ export const IRREGULAR = {
 export const STOPWORDS = new Set(
   `a an the and or but so to of in on at by for with from is am are was were be been it its i me my you your he she him her his we us our they them their this that these those do does did not no yes oh ooh ah yeah hey la na uh woah whoa ay`.split(' '),
 );
+
+/* Wörterbücher und Funktionswörter je Sprache (für Nachschlagen und Übungen). */
+import { DICT_ES, STOPWORDS_ES } from './dictionary-es.js';
+export const DICTS = { en: DICT, es: DICT_ES };
+export const STOPS = {
+  en: STOPWORDS,
+  es: STOPWORDS_ES,
+  pt: new Set('a o as os de do da dos das e que se me te eu você meu minha em com por para não sim um uma é'.split(' ')),
+  ro: new Set('și nu eu tu că de la în mă te mi ce cu pe sunt ești dar mai am o un'.split(' ')),
+};
+export const dictFor = (lang) => DICTS[lang] || {};
+export const stopsFor = (lang) => STOPS[lang] || new Set();

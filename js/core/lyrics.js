@@ -11,6 +11,7 @@
  */
 import { emit } from './events.js';
 import { normAnswer } from './text.js';
+import { setSongLang } from '../../data/songs.js';
 
 const PREFIX = 'bachatalingo.lyrics.';
 
@@ -159,4 +160,92 @@ export async function searchLRCLIB({ track, artist }) {
 export function fromLRCLIB(result) {
   const parsed = result.syncedLyrics ? parseLRC(result.syncedLyrics) : parsePlain(result.plainLyrics || '');
   return { ...parsed, source: 'lrclib', sourceId: result.id, sourceName: `${result.artistName} – ${result.trackName}` };
+}
+
+/* ---------- Automatisch laden ---------- */
+
+const LANG_HINTS = {
+  es: 'que de la el en y los se no me te mi tu por con para un una lo es yo como pero si más cuando quiero amor corazón contigo sin todo nada eres estoy vida porque ya está esta',
+  en: "the and you i to me my it is in that on your of for be love can don't i'm just know all we what so baby when this like but with no",
+  pt: 'você não eu meu minha que de o a com para é um uma te amor coração mais vou tudo quando sem nós isso estou também então',
+  ro: 'și nu eu tu că de la în mă te mi ce iubire inimă cu pe sunt ești dar mai am',
+};
+const HINT_SETS = Object.fromEntries(Object.entries(LANG_HINTS).map(([k, v]) => [k, new Set(v.split(' '))]));
+
+/** Sprache eines Songtexts schätzen (Häufigkeit typischer Funktionswörter). */
+export function detectLang(lyr) {
+  const ws = (lyr?.lines || []).flatMap((l) => l.text.toLowerCase().match(/[\p{L}'’]+/gu) || []);
+  if (ws.length < 20) return null;
+  let best = null;
+  let score = 0;
+  for (const [k, set] of Object.entries(HINT_SETS)) {
+    const sc = ws.filter((w) => set.has(w)).length / ws.length;
+    if (sc > score) { best = k; score = sc; }
+  }
+  return score > 0.06 ? best : null;
+}
+
+export async function fetchLRCLIB(id) {
+  const res = await fetch(`${LRCLIB}/get/${id}`);
+  if (!res.ok) throw new Error(`LRCLIB antwortet nicht (${res.status}).`);
+  return fromLRCLIB(await res.json());
+}
+
+const normT = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const pending = new Map();
+
+/**
+ * Songtext sicherstellen: gespeichert → sofort; Katalog-ID → laden;
+ * sonst Suche nach Titel (+ Interpret), nur exakte Titeltreffer.
+ * → Lyrics oder null. Wirft nie.
+ */
+export function ensureLyrics(song) {
+  const have = getLyrics(song.id);
+  if (have) return Promise.resolve(have);
+  if (song.noAutoLyrics) return Promise.resolve(null);
+  if (pending.has(song.id)) return pending.get(song.id);
+  const job = (async () => {
+    try {
+      let lyr = null;
+      if (song.lrclib) lyr = await fetchLRCLIB(song.lrclib);
+      else {
+        const list = await searchLRCLIB({ track: song.lyrics?.track || song.title, artist: song.lyrics?.artist || '' });
+        const t = normT(song.lyrics?.track || song.title);
+        // Nur übernehmen, wenn Titel UND einer der Interpreten passt. Reine Titeltreffer
+        // sind oft ein ganz anderer Song (dann lieber manuell im Editor wählen).
+        const artists = (song.lyrics?.artist || song.artist || '').split(/[,&]/).map(normT).filter((a) => a.length > 1);
+        const hit = list.find((r) => normT(r.trackName) === t && artists.some((a) => normT(r.artistName).includes(a)));
+        if (hit) lyr = fromLRCLIB(hit);
+      }
+      if (!lyr || !lyr.lines.length) return null;
+      const saved = saveLyrics(song.id, lyr);
+      // Eigene/gesuchte Songs: Sprache am Text erkennen
+      if (song.auto && !song.lrclib) {
+        const lang = detectLang(saved);
+        if (lang) setSongLang(song.id, lang);
+      }
+      return saved;
+    } catch {
+      return null;
+    } finally {
+      pending.delete(song.id);
+    }
+  })();
+  pending.set(song.id, job);
+  return job;
+}
+
+/** Viele Songtexte nacheinander laden (schont die freie API). onProgress(done, total, song, ok) */
+export async function ensureMany(songs, onProgress, { signal } = {}) {
+  let done = 0;
+  let ok = 0;
+  for (const s of songs) {
+    if (signal?.aborted) break;
+    const lyr = await ensureLyrics(s);
+    if (lyr) ok++;
+    done++;
+    onProgress?.(done, songs.length, s, !!lyr);
+    await new Promise((r) => setTimeout(r, 120));
+  }
+  return { done, ok };
 }

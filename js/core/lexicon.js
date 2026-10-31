@@ -1,5 +1,5 @@
 /** Wort nachschlagen: Offline-Wörterbuch → Song-Vokabeln → Online-Übersetzung. */
-import { DICT, IRREGULAR } from '../../data/dictionary.js';
+import { DICT, IRREGULAR, dictFor } from '../../data/dictionary.js';
 import { SONGS } from '../../data/songs.js';
 import { normWord } from './text.js';
 import { translate } from './translate.js';
@@ -51,7 +51,13 @@ export function lookupOffline(word, lang = 'en') {
     if (sv) return { lemma: l, de: sv };
     return { lemma: l, de: null };
   }
-  return { lemma: w, de: songVocab(w, lang) };
+  // Spanisch & Co.: Wörterbuch der Sprache, dann einfache Plural-Regeln
+  const d = dictFor(lang);
+  const plain = w.replace(/'+$/, '');
+  for (const t of [plain, plain.replace(/es$/, ''), plain.replace(/s$/, '')]) {
+    if (d[t]) return { lemma: t, de: d[t] };
+  }
+  return { lemma: plain, de: songVocab(plain, lang) };
 }
 
 /** Vollständiges Nachschlagen inkl. Online-Übersetzung. */

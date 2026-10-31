@@ -2,10 +2,13 @@
  * Die Lernreise: Units mit Stationen.
  * Eine Station ist entweder ein Song ({ song: 'id' }) oder eine Lektion ({ lesson: 'id' }).
  * Reihenfolge = Reihenfolge auf dem Pfad. Einfach umsortieren oder neue Units anlegen.
+ * lang = Lernsprache, zu der die Unit gehört. Songs aus dem Katalog, die in keiner
+ * Unit stehen, ordnet js/core/journey.js automatisch in weitere Units ein.
  */
 export const UNITS = [
   {
     id: 'u1',
+    lang: 'en',
     title: 'Erste Gefühle',
     goal: 'Kurze Titel, große Gefühle. Du lernst Songs mit wenigen Worten zu entschlüsseln.',
     hue: 12,
@@ -20,6 +23,7 @@ export const UNITS = [
   },
   {
     id: 'u2',
+    lang: 'en',
     title: 'Liebe in allen Farben',
     goal: 'Die Sprache der Nähe: Zärtlichkeit, Sehnsucht und Hingabe.',
     hue: 340,
@@ -35,6 +39,7 @@ export const UNITS = [
   },
   {
     id: 'u3',
+    lang: 'en',
     title: 'Naturgewalten',
     goal: 'Stürme, Wasser, Feuer: wie Songs mit Bildern arbeiten, und wie du sie schneller hörst.',
     hue: 195,
@@ -49,6 +54,7 @@ export const UNITS = [
   },
   {
     id: 'u4',
+    lang: 'en',
     title: 'Innere Kämpfe',
     goal: 'Schnellere Texte, tiefere Themen. Hier wird es anspruchsvoll.',
     hue: 255,
@@ -62,14 +68,41 @@ export const UNITS = [
     ],
   },
   {
-    id: 'u5',
-    title: 'Weltreise',
-    goal: 'Bachata ist zuhause in der Karibik. Ein Ausflug ins Spanische und Rumänische.',
-    hue: 40,
+    id: 'es1',
+    lang: 'es',
+    title: 'Primeros pasos',
+    goal: 'Die Wörter, die in jeder Bachata vorkommen, und die Klassiker, mit denen alles anfängt.',
+    hue: 20,
     stops: [
       { lesson: 'bachata-espanol' },
       { song: 'no-te-vayas' },
-      { song: 'brate-straine' },
+      { lesson: 'es-imperativ' },
     ],
   },
+  {
+    id: 'ro1',
+    lang: 'ro',
+    title: 'Dor de dans',
+    goal: 'Ein Ausflug ins Rumänische: Liebe, Sehnsucht und fremde Arme.',
+    hue: 50,
+    stops: [{ song: 'brate-straine' }],
+  },
 ];
+
+/**
+ * Lektionen, die der Lernpfad automatisch zwischen die Katalog-Songs streut
+ * (eine pro Unit, in dieser Reihenfolge).
+ */
+export const AUTO_LESSONS = {
+  es: ['es-pronomen', 'es-caribe', 'es-subjuntivo'],
+  en: [],
+  pt: ['pt-basics'],
+};
+
+/** Namen für automatisch erzeugte Units je Sprache. */
+export const UNIT_NAMES = {
+  es: ['Corazón', 'Bajo la luna', 'Noche de baile', 'Amor prohibido', 'Mariposas', 'Sin censura', 'Fuego lento', 'Sudor y calor', 'Mar Caribe', 'Para siempre', 'Última canción', 'Madrugada'],
+  en: ['Late Night Remixes', 'Heartbeats', 'Slow Burn', 'Neon Lights', 'Afterglow', 'Encore'],
+  pt: ['Saudade', 'Coração', 'Noite'],
+  ro: ['Dor'],
+};

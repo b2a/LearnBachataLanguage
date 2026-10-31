@@ -2,6 +2,9 @@
 import { h } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { LANGS } from '../../data/songs.js';
+import { state, update } from '../core/state.js';
+import { songCount, clearJourneyCache } from '../core/journey.js';
+import { emit } from '../core/events.js';
 
 /** Generiertes Song-Cover: einfarbiger Verlauf + „Vinyl“-Rillen + Initiale. */
 export function cover(song, size = 'md') {
@@ -86,4 +89,27 @@ export function dialog(title, body, actions = []) {
 
 export function levelLabel(level) {
   return ['', 'Leicht', 'Mittel', 'Schwer'][level] || '';
+}
+
+/** Lernsprache wählen (Segment-Buttons mit Anzahl Songs). */
+export function langPicker({ compact = false } = {}) {
+  const cur = state.settings.targetLang || 'es';
+  const langs = Object.entries(LANGS).filter(([, l]) => l.learnable);
+  return h(`div.lang-picker${compact ? '.is-compact' : ''}`, { role: 'group', 'aria-label': 'Lernsprache' },
+    langs.map(([code, l]) => h(`button.lang-btn${code === cur ? '.is-on' : ''}`, {
+      type: 'button',
+      'aria-pressed': String(code === cur),
+      title: `${l.label} lernen`,
+      onClick: () => setTargetLang(code),
+    }, h('span.lang-flag', { 'aria-hidden': 'true' }, l.flag), h('span.lang-name', l.label), compact ? null : h('span.lang-count', String(songCount(code))))),
+  );
+}
+
+export function setTargetLang(code) {
+  if ((state.settings.targetLang || 'es') === code) return;
+  update((s) => (s.settings.targetLang = code));
+  clearJourneyCache();
+  emit('targetLang', code);
+  if (location.hash === '#/' || location.hash === '') window.dispatchEvent(new HashChangeEvent('hashchange'));
+  else location.hash = '#/';
 }
