@@ -9,7 +9,7 @@ import {
   supportsFolderAccess, pickFolder, addFiles, libraryStatus, getSource, restoreWithGesture,
   forgetFolder, assignFile, youtubeSearch, unmatchedCount, adoptUnmatched,
 } from '../core/library.js';
-import { hasLyrics, ensureMany } from '../core/lyrics.js';
+import { hasLyrics, startBatch, stopBatch, batchState } from '../core/lyrics.js';
 import { parseSongList } from '../core/songparse.js';
 import { clearJourneyCache, targetLang } from '../core/journey.js';
 import { player } from '../core/player.js';
@@ -27,7 +27,6 @@ export function libraryView(ctx) {
   let query = '';
   let onlyMissing = false;
   let shown = 60;
-  let batch = null; // laufender Sammel-Download
 
   const dirInput = h('input', { type: 'file', multiple: true, webkitdirectory: true, hidden: true, onChange: (e) => report(addFiles(e.target.files)) });
   const filesInput = h('input', { type: 'file', multiple: true, accept: 'audio/*', hidden: true, onChange: (e) => report(addFiles(e.target.files)) });
@@ -91,28 +90,53 @@ export function libraryView(ctx) {
     const lang = targetLang();
     const songs = SONGS.filter((s) => s.lang === lang);
     const have = songs.filter((s) => hasLyrics(s.id)).length;
-    const candidates = songs.filter((s) => !hasLyrics(s.id) && !s.noAutoLyrics);
-    const progress = bar(songs.length ? have / songs.length : 0);
-    const label = h('span.small.muted', `${have} von ${songs.length} Songtexten auf ${LANGS[lang]?.label} geladen`);
-    const go = btn(batch ? 'Abbrechen' : `Alle Songtexte laden (${candidates.length})`, { kind: batch ? 'ghost' : 'primary', ic: batch ? 'x' : 'download', disabled: !batch && !candidates.length, onClick: async () => {
-      if (batch) { batch.abort(); return; }
-      batch = new AbortController();
-      renderLyricsBox();
-      const res = await ensureMany(candidates, (done, total) => {
-        label.textContent = `Lade … ${done}/${total}`;
-        progress.set((have + done) / songs.length);
-      }, { signal: batch.signal });
-      batch = null;
-      clearJourneyCache();
-      toast(`${res.ok} Songtexte geladen${res.done - res.ok ? `, ${res.done - res.ok} nicht gefunden` : ''}.`, { kind: 'ok', ms: 4500 });
-      renderLyricsBox();
-      renderList();
-    } });
+    const candidates = songs.filter((s) => !hasLyrics(s.id) && !s.noAutoLyrics && (s.lrclib || s.user));
+    const b = batchState();
+    const running = b?.running;
+    const progress = bar(running ? b.done / Math.max(1, b.total) : songs.length ? have / songs.length : 0);
+
+    let statusEl;
+    if (running) {
+      statusEl = h('div.batch-status', { role: 'status', 'aria-live': 'polite' },
+        h('div.batch-line',
+          h('span.spinner', { 'aria-hidden': 'true' }),
+          h('strong', b.round === 2 ? `Zweiter Versuch ${b.done}/${b.total}` : `Lade ${b.done}/${b.total}`),
+          b.current ? h('span.muted.batch-current', `· ${b.current.title}`) : null,
+        ),
+        b.retrying ? h('p.small.warn-text', 'LRCLIB ist gerade überlastet. Die App wartet kurz und versucht es automatisch erneut …') : null,
+        counters(b),
+      );
+    } else if (b && b.done) {
+      statusEl = h('div.batch-status', { role: 'status' },
+        h('div.batch-line', icon(b.failed.length ? 'info' : 'check', 18), h('strong', b.aborted ? 'Abgebrochen.' : 'Fertig.')),
+        counters(b),
+        b.failed.length ? h('p.small.muted', `${b.failed.length === 1 ? '1 Song konnte' : `${b.failed.length} Songs konnten`} wegen Serverproblemen nicht geladen werden. Das liegt an LRCLIB, nicht an dir. Versuch es in ein paar Minuten nochmal.`) : null,
+      );
+    } else {
+      statusEl = h('span.small.muted', `${have} von ${songs.length} Songtexten auf ${LANGS[lang]?.label} geladen`);
+    }
+
+    const actions = running
+      ? [btn('Abbrechen', { kind: 'ghost', ic: 'x', onClick: () => stopBatch() })]
+      : [
+        btn(`Alle Songtexte laden (${candidates.length})`, { kind: 'primary', ic: 'download', disabled: !candidates.length, onClick: () => startBatch(candidates) }),
+        b?.failed?.length ? btn(`Fehlgeschlagene erneut versuchen (${b.failed.length})`, { kind: 'secondary', ic: 'refresh', onClick: () => startBatch(b.failed) }) : null,
+      ];
+
     fill(lyricsBox,
       h('h2.card-title', icon('text', 18), ' Songtexte'),
-      h('p.muted', 'Die App holt die Texte aus der freien Datenbank LRCLIB, meist mit Zeitstempeln für Karaoke. Das passiert automatisch, sobald du einen Song öffnest. Hier lädst du alle auf einmal, z. B. bevor du offline übst.'),
-      h('div.lyrics-progress', progress, label),
-      h('div.btn-row', go),
+      h('p.muted', 'Die App holt die Texte aus der freien Datenbank LRCLIB, meist mit Zeitstempeln für Karaoke. Das passiert automatisch, sobald du einen Song öffnest. Hier lädst du alle auf einmal. Das läuft im Hintergrund weiter, auch wenn du die Seite wechselst.'),
+      h('div.lyrics-progress', progress),
+      statusEl,
+      h('div.btn-row', actions),
+    );
+  }
+
+  function counters(b) {
+    return h('div.batch-counts',
+      h('span.ok-text', icon('check', 14), ` ${b.ok} geladen`),
+      h('span.muted', icon('x', 14), ` ${b.missing} nicht gefunden`),
+      b.failed.length ? h('span.warn-text', icon('info', 14), ` ${b.failed.length} Serverfehler${b.running ? ', zweiter Versuch folgt' : ''}`) : null,
     );
   }
 
@@ -191,7 +215,7 @@ export function libraryView(ctx) {
   const missingToggle = h('label.chip', h('input', { type: 'checkbox', onChange: (e) => { onlyMissing = e.target.checked; renderList(); } }), ' Nur ohne Audio');
 
   ctx.onLeave(on('library', () => { renderHead(); renderList(); renderUnmatched(); }));
-  ctx.onLeave(() => batch?.abort());
+  ctx.onLeave(on('lyricsBatch', (b) => { renderLyricsBox(); if (!b.running) { clearJourneyCache(); renderList(); } }));
   renderHead();
   renderUnmatched();
   renderLyricsBox();

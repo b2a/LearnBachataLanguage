@@ -470,3 +470,15 @@ details.unit:not([open]) .unit-head { margin-bottom: 0; }
 .unit-progress > .icon { color: var(--text-3); transition: transform var(--motion-200) var(--ease-out); }
 details.unit[open] .unit-progress > .icon { transform: rotate(180deg); }
 .unit-count { font-size: var(--fs-12); white-space: nowrap; }
+
+.batch-status { display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s3); }
+.batch-line { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+.batch-current { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.batch-counts { display: flex; flex-wrap: wrap; gap: var(--s4); font-size: var(--fs-14); }
+.batch-counts span { display: inline-flex; align-items: center; gap: 4px; }
+.lyrics-progress .bar { flex: 1; }
+/* Spinner: zeigt laufende Arbeit an (funktionale Schleife, endet mit dem Download) */
+.spinner { width: 16px; height: 16px; flex-shrink: 0; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: spin 800ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.stat-batch { color: var(--accent-text); }

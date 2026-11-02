@@ -134,22 +134,50 @@ export function chorusLines(lyr) {
 /* ---------- LRCLIB (freie Lyrics-Datenbank, https://lrclib.net) ---------- */
 
 const LRCLIB = 'https://lrclib.net/api';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Fehler, der vermutlich vorübergehend ist (Server überlastet, Netz weg). */
+export class TemporaryError extends Error {
+  constructor(msg) { super(msg); this.temporary = true; }
+}
+
+/**
+ * GET mit Wiederholung: Bei 429/5xx oder Netzfehler bis zu 4 weitere Versuche
+ * mit wachsender Pause (1 s, 2 s, 4 s, 8 s, plus Zufall). Retry-After wird beachtet.
+ * 404 ist kein Fehler, sondern „nicht vorhanden“ → null.
+ */
+async function lrclibGet(url, { tries = 5, onRetry } = {}) {
+  let last = '';
+  for (let i = 0; i < tries; i++) {
+    let res = null;
+    try {
+      res = await fetch(url);
+    } catch {
+      last = 'Keine Verbindung zu LRCLIB';
+    }
+    if (res) {
+      if (res.ok) return res.json();
+      if (res.status === 404) return null;
+      last = `LRCLIB antwortet mit ${res.status}`;
+      // 4xx (außer 429) ist dauerhaft, Wiederholen bringt nichts
+      if (res.status !== 429 && res.status < 500) throw new Error(last);
+    }
+    if (i < tries - 1) {
+      onRetry?.(i + 1, res?.status || 0);
+      const ra = Number(res?.headers.get('retry-after'));
+      await sleep(ra > 0 ? ra * 1000 : 1000 * 2 ** i + Math.random() * 500);
+    }
+  }
+  throw new TemporaryError(`${last}. LRCLIB ist gerade überlastet, bitte später erneut versuchen.`);
+}
 
 export async function searchLRCLIB({ track, artist }) {
   const params = new URLSearchParams();
   if (track) params.set('track_name', track);
   if (artist) params.set('artist_name', artist);
-  let res = await fetch(`${LRCLIB}/search?${params}`);
-  if (!res.ok) throw new Error(`LRCLIB antwortet nicht (${res.status}).`);
-  let list = await res.json();
-  if (!list.length && artist) {
-    res = await fetch(`${LRCLIB}/search?q=${encodeURIComponent(`${track} ${artist}`)}`);
-    list = res.ok ? await res.json() : [];
-  }
-  if (!list.length) {
-    res = await fetch(`${LRCLIB}/search?q=${encodeURIComponent(track)}`);
-    list = res.ok ? await res.json() : [];
-  }
+  let list = (await lrclibGet(`${LRCLIB}/search?${params}`)) || [];
+  if (!list.length && artist) list = (await lrclibGet(`${LRCLIB}/search?q=${encodeURIComponent(`${track} ${artist}`)}`)) || [];
+  if (!list.length) list = (await lrclibGet(`${LRCLIB}/search?q=${encodeURIComponent(track)}`)) || [];
   // synchronisierte Treffer zuerst
   return list
     .filter((r) => r.plainLyrics || r.syncedLyrics)
@@ -185,29 +213,27 @@ export function detectLang(lyr) {
   return score > 0.06 ? best : null;
 }
 
-export async function fetchLRCLIB(id) {
-  const res = await fetch(`${LRCLIB}/get/${id}`);
-  if (!res.ok) throw new Error(`LRCLIB antwortet nicht (${res.status}).`);
-  return fromLRCLIB(await res.json());
+export async function fetchLRCLIB(id, opts) {
+  const data = await lrclibGet(`${LRCLIB}/get/${id}`, opts);
+  return data ? fromLRCLIB(data) : null;
 }
 
 const normT = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const pending = new Map();
 
 /**
- * Songtext sicherstellen: gespeichert → sofort; Katalog-ID → laden;
- * sonst Suche nach Titel (+ Interpret), nur exakte Titeltreffer.
- * → Lyrics oder null. Wirft nie.
+ * Songtext laden mit Ergebnis-Status:
+ *  { lyr, status: 'ok' | 'missing' (gibt es nicht) | 'error' (vorübergehend, später nochmal) }
  */
-export function ensureLyrics(song) {
+export function loadLyrics(song, opts = {}) {
   const have = getLyrics(song.id);
-  if (have) return Promise.resolve(have);
-  if (song.noAutoLyrics) return Promise.resolve(null);
+  if (have) return Promise.resolve({ lyr: have, status: 'ok' });
+  if (song.noAutoLyrics) return Promise.resolve({ lyr: null, status: 'missing' });
   if (pending.has(song.id)) return pending.get(song.id);
   const job = (async () => {
     try {
       let lyr = null;
-      if (song.lrclib) lyr = await fetchLRCLIB(song.lrclib);
+      if (song.lrclib) lyr = await fetchLRCLIB(song.lrclib, opts);
       else {
         const list = await searchLRCLIB({ track: song.lyrics?.track || song.title, artist: song.lyrics?.artist || '' });
         const t = normT(song.lyrics?.track || song.title);
@@ -217,16 +243,16 @@ export function ensureLyrics(song) {
         const hit = list.find((r) => normT(r.trackName) === t && artists.some((a) => normT(r.artistName).includes(a)));
         if (hit) lyr = fromLRCLIB(hit);
       }
-      if (!lyr || !lyr.lines.length) return null;
+      if (!lyr || !lyr.lines.length) return { lyr: null, status: 'missing' };
       const saved = saveLyrics(song.id, lyr);
       // Eigene/gesuchte Songs: Sprache am Text erkennen
       if (song.auto && !song.lrclib) {
         const lang = detectLang(saved);
         if (lang) setSongLang(song.id, lang);
       }
-      return saved;
-    } catch {
-      return null;
+      return { lyr: saved, status: 'ok' };
+    } catch (err) {
+      return { lyr: null, status: err.temporary || err instanceof TypeError ? 'error' : 'missing', error: err.message };
     } finally {
       pending.delete(song.id);
     }
@@ -235,17 +261,65 @@ export function ensureLyrics(song) {
   return job;
 }
 
-/** Viele Songtexte nacheinander laden (schont die freie API). onProgress(done, total, song, ok) */
-export async function ensureMany(songs, onProgress, { signal } = {}) {
-  let done = 0;
-  let ok = 0;
-  for (const s of songs) {
-    if (signal?.aborted) break;
-    const lyr = await ensureLyrics(s);
-    if (lyr) ok++;
-    done++;
-    onProgress?.(done, songs.length, s, !!lyr);
-    await new Promise((r) => setTimeout(r, 120));
-  }
-  return { done, ok };
+/** Kurzform: → Lyrics oder null. Wirft nie. */
+export async function ensureLyrics(song) {
+  return (await loadLyrics(song)).lyr;
+}
+
+/* ---------- Sammel-Download im Hintergrund ---------- */
+
+/**
+ * Läuft weiter, auch wenn du die Seite wechselst. Zustand über batchState(),
+ * Änderungen kommen als Event 'lyricsBatch'.
+ * Ablauf: 1. Runde zügig (≈ 3 Anfragen/s), 2. Runde langsam nur für Fehlschläge.
+ */
+let batch = null;
+
+export function batchState() {
+  return batch;
+}
+
+export function startBatch(songs) {
+  if (batch?.running) return batch;
+  const ctrl = new AbortController();
+  batch = { running: true, round: 1, total: songs.length, done: 0, ok: 0, missing: 0, failed: [], current: null, retrying: false, ctrl, startedAt: Date.now() };
+  const tick = () => emit('lyricsBatch', batch);
+
+  (async () => {
+    let queue = songs;
+    for (const round of [1, 2]) {
+      if (round === 2) {
+        if (!batch.failed.length || ctrl.signal.aborted) break;
+        queue = batch.failed;
+        batch.failed = [];
+        batch.round = 2;
+        batch.done -= queue.length; // diese zählen nochmal
+        tick();
+        await sleep(3000); // Server kurz Luft lassen
+      }
+      for (const s of queue) {
+        if (ctrl.signal.aborted) break;
+        batch.current = s;
+        batch.retrying = false;
+        tick();
+        const r = await loadLyrics(s, { onRetry: () => { batch.retrying = true; tick(); } });
+        batch.done += 1;
+        if (r.status === 'ok') batch.ok += 1;
+        else if (r.status === 'missing') batch.missing += 1;
+        else batch.failed.push(s);
+        tick();
+        await sleep(round === 1 ? 300 : 1200);
+      }
+    }
+    batch.running = false;
+    batch.current = null;
+    batch.aborted = ctrl.signal.aborted;
+    tick();
+  })();
+  tick();
+  return batch;
+}
+
+export function stopBatch() {
+  batch?.ctrl.abort();
 }

@@ -36,6 +36,7 @@ export function mountShell(root) {
     return a;
   });
 
+  const batchEl = h('a.stat-chip.stat-batch', { href: '#/library', hidden: true, title: 'Songtexte werden geladen' });
   const langEl = h('a.stat-chip.stat-lang', { href: '#/', title: 'Lernsprache (auf der Startseite ändern)' });
   const streakEl = h('a.stat-chip.stat-streak', { href: '#/profile', title: 'Tage in Folge' });
   const xpEl = h('a.stat-chip.stat-xp', { href: '#/profile', title: 'Erfahrungspunkte' });
@@ -51,7 +52,7 @@ export function mountShell(root) {
 
   const topbar = h('header.topbar',
     h('a.brand.brand-compact', { href: '#/', 'aria-label': 'Startseite' }, h('span.brand-mark', { 'aria-hidden': 'true' }, logo()), h('span.brand-name', 'Bachata', h('em', 'lingo'))),
-    h('div.topbar-stats', langEl, streakEl, xpEl, goalEl),
+    h('div.topbar-stats', batchEl, langEl, streakEl, xpEl, goalEl),
   );
 
   const outlet = h('main.outlet', { id: 'main', tabindex: '-1' });
@@ -97,6 +98,15 @@ export function mountShell(root) {
   }
 
   on('state', renderStats);
+  on('lyricsBatch', (b) => {
+    batchEl.hidden = !b.running;
+    if (b.running) {
+      fill(batchEl, h('span.spinner', { 'aria-hidden': 'true' }), h('span', `Texte ${b.done}/${b.total}`));
+      batchEl.setAttribute('aria-label', `Songtexte werden geladen: ${b.done} von ${b.total}`);
+    } else if (b.done && !b.aborted) {
+      toast(`Songtexte: ${b.ok} geladen, ${b.missing} nicht gefunden${b.failed.length ? `, ${b.failed.length} Serverfehler` : ''}.`, { kind: b.failed.length ? 'info' : 'ok', ms: 6000, action: b.failed.length ? { label: 'Ansehen', onClick: () => (location.hash = '#/library') } : null });
+    }
+  });
   on('route', markActive);
   on('xp', ({ amount }) => floatText(`+${amount} XP`, xpEl));
   on('levelup', ({ level }) => { toast(`Level ${level} erreicht!`, { kind: 'gold', icon: 'bolt' }); confetti({ y: 0.2 }); });

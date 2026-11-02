@@ -3,7 +3,7 @@ import { h, clear, fill } from '../core/dom.js';
 import { icon } from '../core/icons.js';
 import { SONG_BY_ID, LANGS } from '../../data/songs.js';
 import { STAGES, STAGE_INFO, stageDone, songPct, nextStage } from '../core/progress.js';
-import { getLyrics, ensureLyrics } from '../core/lyrics.js';
+import { getLyrics, loadLyrics } from '../core/lyrics.js';
 import { songVocab } from '../exercises/generate.js';
 import { getSource, resolveSource, assignFile, youtubeSearch } from '../core/library.js';
 import { addSongVocab, findCard } from '../core/deck.js';
@@ -45,11 +45,11 @@ export function songView(ctx) {
       h(`div.status-row${lyr ? '.is-ok' : ''}`,
         h('span.status-icon', icon(lyr ? 'check' : 'text', 18)),
         h('div.status-text',
-          h('strong', lyr ? `Songtext: ${lyr.lines.length} Zeilen` : lyricsState === 'loading' ? 'Songtext wird geladen …' : 'Songtext nicht gefunden'),
-          h('span.muted', lyr ? (lyr.synced ? `Mit Zeitstempeln${lyr.offset ? `, Versatz ${lyr.offset > 0 ? '+' : ''}${lyr.offset.toFixed(1)} s` : ''}` : 'Ohne Zeitstempel. Synchronisiere ihn per Tap-Sync.') : lyricsState === 'loading' ? 'Einen Moment, die App sucht in der freien Datenbank LRCLIB.' : (song.note || 'Die freie Datenbank kennt diesen Song nicht. Such mit anderer Schreibweise oder füg den Text selbst ein.')),
+          h('strong', lyr ? `Songtext: ${lyr.lines.length} Zeilen` : lyricsState === 'loading' ? 'Songtext wird geladen …' : lyricsState === 'error' ? 'LRCLIB ist gerade überlastet' : 'Songtext nicht gefunden'),
+          h('span.muted', lyr ? (lyr.synced ? `Mit Zeitstempeln${lyr.offset ? `, Versatz ${lyr.offset > 0 ? '+' : ''}${lyr.offset.toFixed(1)} s` : ''}` : 'Ohne Zeitstempel. Synchronisiere ihn per Tap-Sync.') : lyricsState === 'loading' ? 'Einen Moment, die App sucht in der freien Datenbank LRCLIB.' : lyricsState === 'error' ? 'Die App hat es mehrmals versucht. Probier es gleich nochmal.' : (song.note || 'Die freie Datenbank kennt diesen Song nicht. Such mit anderer Schreibweise oder füg den Text selbst ein.')),
           lyr && song.unsure && lyr.source === 'lrclib' ? h('span.small.warn-text', `Automatisch über den Titel gefunden (${song.lyricsFrom}). Kurz prüfen, ob es der richtige Song ist.`) : null,
         ),
-        h('div.status-actions', btn(lyr ? 'Bearbeiten' : 'Songtext laden', { size: 'sm', kind: lyr ? 'ghost' : 'secondary', ic: lyr ? 'edit' : 'download', href: `#/song/${song.id}/edit` })),
+        h('div.status-actions', lyricsState === 'error' ? btn('Erneut versuchen', { size: 'sm', ic: 'refresh', onClick: tryLoad }) : null, btn(lyr ? 'Bearbeiten' : 'Songtext laden', { size: 'sm', kind: lyr ? 'ghost' : 'secondary', ic: lyr ? 'edit' : 'download', href: `#/song/${song.id}/edit` })),
       ),
     );
   }
@@ -121,9 +121,12 @@ export function songView(ctx) {
   renderStatus();
   renderStages();
   renderVocab();
-  if (lyricsState === 'loading') {
-    ensureLyrics(song).then((l) => { lyricsState = l ? 'ok' : 'missing'; if (!l) renderStatus(); });
+  function tryLoad() {
+    lyricsState = 'loading';
+    renderStatus();
+    loadLyrics(song).then((r) => { lyricsState = r.status; if (r.status !== 'ok') renderStatus(); });
   }
+  if (lyricsState === 'loading') tryLoad();
   ctx.onLeave(on('library', renderStatus));
   ctx.onLeave(on('lyrics', () => { renderStatus(); renderStages(); }));
   return el;
