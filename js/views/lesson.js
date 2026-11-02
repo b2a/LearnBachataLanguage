@@ -30,7 +30,7 @@ export function lessonView(ctx) {
             h('td', h('strong', a)),
             h('td', b),
             h('td.muted', c),
-            h('td', h('button.icon-btn', { type: 'button', 'aria-label': `„${a}“ anhören`, onClick: () => speak(b.split('/')[0], lang) }, icon('volume', 18))),
+            h('td', h('button.icon-btn', { type: 'button', 'aria-label': `„${a}“ anhören`, onClick: () => speak(a.split('/')[0].replace(/[.…]+$/, '').trim(), lang) }, icon('volume', 18))),
           ))),
         ),
       ) : null,
