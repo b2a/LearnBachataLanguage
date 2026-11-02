@@ -91,16 +91,18 @@ export function profileView(ctx) {
       const f = e.target.files[0];
       if (!f) return;
       try {
-        importAll(await f.text());
-        toast('Sicherung geladen. Die App startet neu.', { kind: 'ok' });
-        setTimeout(() => location.reload(), 900);
+        const r = importAll(await f.text());
+        toast(r.kind === 'lyrics'
+          ? `${r.added} Songtexte eingespielt${r.skipped ? `, ${r.skipped} vorhandene behalten` : ''}. Dein Fortschritt bleibt erhalten.`
+          : 'Sicherung geladen. Die App startet neu.', { kind: 'ok', ms: 5000 });
+        if (r.kind === 'full') setTimeout(() => location.reload(), 900);
       } catch (err) {
         toast(err.message || 'Die Datei ließ sich nicht lesen.', { kind: 'err' });
       }
     } });
     return h('section.card',
       h('h2.card-title', 'Sicherung'),
-      h('p.muted', 'Alles wird nur in diesem Browser gespeichert. Mit einer Sicherung nimmst du Fortschritt, Karten und Songtexte auf ein anderes Gerät mit.'),
+      h('p.muted', 'Alles wird nur in diesem Browser gespeichert. Mit einer Sicherung nimmst du Fortschritt, Karten und Songtexte auf ein anderes Gerät mit. Eine reine Songtext-Datei ergänzt nur fehlende Texte, dein Fortschritt bleibt.'),
       h('div.btn-row',
         btn('Sicherung herunterladen', { ic: 'download', onClick: () => download(`bachatalingo-${new Date().toISOString().slice(0, 10)}.json`, exportAll(), 'application/json') }),
         btn('Sicherung laden', { ic: 'upload', kind: 'ghost', onClick: () => file.click() }),

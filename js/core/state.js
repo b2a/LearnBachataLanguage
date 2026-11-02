@@ -88,13 +88,26 @@ export function exportAll() {
   return JSON.stringify({ app: 'bachatalingo', exported: new Date().toISOString(), state, lyrics }, null, 2);
 }
 
+/**
+ * Sicherung einspielen.
+ * - Vollständige Sicherung (state + lyrics): ersetzt den Spielstand.
+ * - Nur-Songtexte-Sicherung (kind: 'lyrics'): ergänzt fehlende Texte, Fortschritt bleibt.
+ * → { kind: 'full' | 'lyrics', added, skipped }
+ */
 export function importAll(json) {
   const data = JSON.parse(json);
-  if (data.app !== 'bachatalingo' || !data.state) throw new Error('Das ist keine Bachatalingo-Sicherung.');
-  localStorage.setItem(KEY, JSON.stringify(data.state));
+  if (data.app !== 'bachatalingo' || (!data.state && !data.lyrics)) throw new Error('Das ist keine Bachatalingo-Sicherung.');
+  const lyricsOnly = data.kind === 'lyrics' || !data.state;
+  if (!lyricsOnly) localStorage.setItem(KEY, JSON.stringify(data.state));
+  let added = 0;
+  let skipped = 0;
   for (const [k, v] of Object.entries(data.lyrics || {})) {
-    if (k.startsWith('bachatalingo.lyrics.')) localStorage.setItem(k, v);
+    if (!k.startsWith('bachatalingo.lyrics.')) continue;
+    // Bei Nur-Songtexten nichts überschreiben (eigene Sync/Übersetzung bleibt)
+    if (lyricsOnly && localStorage.getItem(k) != null) { skipped++; continue; }
+    try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); added++; } catch { throw new Error('Der Browser-Speicher ist voll. Lösche alte Songtexte oder nutze einen anderen Browser.'); }
   }
+  return { kind: lyricsOnly ? 'lyrics' : 'full', added, skipped };
 }
 
 export function resetAll() {

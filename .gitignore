@@ -5,3 +5,4 @@ music/*
 .DS_Store
 node_modules/
 tools/.lrclib-cache.json
+bachatalingo-songtexte*.json
